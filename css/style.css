@@ -525,6 +525,20 @@ button {
     justify-content: flex-end;
     gap: 1rem;
     margin-top: 2rem;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 480px) {
+    .modal-actions {
+        flex-direction: column-reverse;
+        /* Stack buttons, Save on top usually or maintain order? Let's keep normal order but stretch */
+        flex-direction: column;
+    }
+
+    .modal-actions button {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
 }
 
 .row {

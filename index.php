@@ -153,8 +153,8 @@ $user = $isLoggedIn ? ['username' => $_SESSION['username'], 'role' => $_SESSION[
                 <div class="modal-actions">
                     <button type="button" class="btn-danger hidden" id="btnDeleteTask">Löschen</button>
                     <!-- Completion Buttons -->
-                    <button type="button" id="btnCompleteSuccess" class="btn-primary" style="background: var(--success); display: none;" onclick="App.completeTask('completed_success')">Erfolg</button>
-                    <button type="button" id="btnCompleteFail" class="btn-danger" style="display: none;" onclick="App.completeTask('completed_fail')">Gescheitert</button>
+                    <button type="button" id="btnCompleteSuccess" class="btn-primary" style="background: var(--success); display: none;">Erfolg</button>
+                    <button type="button" id="btnCompleteFail" class="btn-danger" style="display: none;">Gescheitert</button>
                     
                     <button type="button" class="btn-secondary close-modal-btn">Abbrechen</button>
                     <button type="submit" class="btn-primary">Speichern</button>

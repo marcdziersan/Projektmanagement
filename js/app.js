@@ -1,10 +1,11 @@
-const App = {
+window.App = {
     projects: [],
     users: [],
     currentTask: null,
     timerInterval: null,
 
     async init() {
+        console.log('App initializing...');
         if (document.querySelector('.login-view')) {
             this.bindLogin();
         } else {
@@ -12,55 +13,68 @@ const App = {
             await this.loadDependencies();
             Calendar.init(); // Requires calendar.js loaded
         }
+        console.log('App initialized');
     },
 
     bindLogin() {
         // Toggle forms
-        document.getElementById('showRegister').addEventListener('click', (e) => {
-            e.preventDefault();
-            document.getElementById('loginForm').classList.add('hidden');
-            document.getElementById('registerForm').classList.remove('hidden');
-        });
+        const showRegister = document.getElementById('showRegister');
+        if (showRegister) {
+            showRegister.addEventListener('click', (e) => {
+                e.preventDefault();
+                document.getElementById('loginForm').classList.add('hidden');
+                document.getElementById('registerForm').classList.remove('hidden');
+            });
+        }
 
-        document.getElementById('showLogin').addEventListener('click', (e) => {
-            e.preventDefault();
-            document.getElementById('registerForm').classList.add('hidden');
-            document.getElementById('loginForm').classList.remove('hidden');
-        });
-
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const user = document.getElementById('loginUser').value;
-            const pass = document.getElementById('loginPass').value;
-            const res = await API.login(user, pass);
-            if (res && res.success) {
-                window.location.reload();
-            } else {
-                document.getElementById('loginError').textContent = res.message || 'Login fehlgeschlagen.';
-            }
-        });
-
-        document.getElementById('registerForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const user = document.getElementById('regUser').value;
-            const pass = document.getElementById('regPass').value;
-            const pass2 = document.getElementById('regPass2').value;
-            const err = document.getElementById('regError');
-
-            if (pass !== pass2) {
-                err.textContent = 'Passwörter stimmen nicht überein.';
-                return;
-            }
-
-            const res = await API.register(user, pass);
-            if (res && res.success) {
-                alert('Registrierung erfolgreich! Bitte anmelden.');
+        const showLogin = document.getElementById('showLogin');
+        if (showLogin) {
+            showLogin.addEventListener('click', (e) => {
+                e.preventDefault();
                 document.getElementById('registerForm').classList.add('hidden');
                 document.getElementById('loginForm').classList.remove('hidden');
-            } else {
-                err.textContent = res.error || 'Fehler bei der Registrierung.';
-            }
-        });
+            });
+        }
+
+        const loginForm = document.getElementById('loginForm');
+        if (loginForm) {
+            loginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const user = document.getElementById('loginUser').value;
+                const pass = document.getElementById('loginPass').value;
+                const res = await API.login(user, pass);
+                if (res && res.success) {
+                    window.location.reload();
+                } else {
+                    document.getElementById('loginError').textContent = res.message || 'Login fehlgeschlagen.';
+                }
+            });
+        }
+
+        const registerForm = document.getElementById('registerForm');
+        if (registerForm) {
+            registerForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const user = document.getElementById('regUser').value;
+                const pass = document.getElementById('regPass').value;
+                const pass2 = document.getElementById('regPass2').value;
+                const err = document.getElementById('regError');
+
+                if (pass !== pass2) {
+                    err.textContent = 'Passwörter stimmen nicht überein.';
+                    return;
+                }
+
+                const res = await API.register(user, pass);
+                if (res && res.success) {
+                    alert('Registrierung erfolgreich! Bitte anmelden.');
+                    document.getElementById('registerForm').classList.add('hidden');
+                    document.getElementById('loginForm').classList.remove('hidden');
+                } else {
+                    err.textContent = res.error || 'Fehler bei der Registrierung.';
+                }
+            });
+        }
     },
 
     bindApp() {
@@ -78,14 +92,16 @@ const App = {
         if (projHeader) {
             projHeader.style.cursor = 'pointer';
             projHeader.addEventListener('click', () => this.switchView('projects'));
-            // Add tooltip or visual cue?
             projHeader.title = "Klicken für Projektübersicht";
         }
 
-        document.getElementById('btnLogout').addEventListener('click', async () => {
-            await API.logout();
-            window.location.reload();
-        });
+        const btnLogout = document.getElementById('btnLogout');
+        if (btnLogout) {
+            btnLogout.addEventListener('click', async () => {
+                await API.logout();
+                window.location.reload();
+            });
+        }
 
         // Calendar Controls
         document.getElementById('prevPeriod')?.addEventListener('click', () => Calendar.prevMonth());
@@ -108,20 +124,21 @@ const App = {
         document.getElementById('btnStartTimer')?.addEventListener('click', () => this.handleTimer('start'));
         document.getElementById('btnStopTimer')?.addEventListener('click', () => this.handleTimer('stop'));
 
-        // Completion buttons - Re-binding with explicit check and console log for debug
+        // Completion buttons
         const btnSuccess = document.getElementById('btnCompleteSuccess');
         const btnFail = document.getElementById('btnCompleteFail');
 
+        // Robust binding + logging
         if (btnSuccess) {
-            btnSuccess.onclick = () => this.completeTask('completed_success'); // Use onclick to overwrite any old listeners
+            btnSuccess.onclick = () => window.App.completeTask('completed_success');
         }
         if (btnFail) {
-            btnFail.onclick = () => this.completeTask('completed_fail');
+            btnFail.onclick = () => window.App.completeTask('completed_fail');
         }
 
         // Projects
-        document.getElementById('btnAddProject').addEventListener('click', () => this.openProjectModal());
-        document.getElementById('projectForm').addEventListener('submit', (e) => this.handleProjectSave(e));
+        document.getElementById('btnAddProject')?.addEventListener('click', () => this.openProjectModal());
+        document.getElementById('projectForm')?.addEventListener('submit', (e) => this.handleProjectSave(e));
     },
 
     async loadDependencies() {
@@ -150,7 +167,8 @@ const App = {
 
     async switchView(viewName) {
         document.querySelectorAll('.view-container').forEach(el => el.style.display = 'none');
-        document.querySelector('.view-controls').style.visibility = viewName === 'calendar' ? 'visible' : 'hidden';
+        const controls = document.querySelector('.view-controls');
+        if (controls) controls.style.visibility = viewName === 'calendar' ? 'visible' : 'hidden';
 
         if (viewName === 'calendar') {
             document.getElementById('calendarView').style.display = 'flex';
@@ -231,7 +249,7 @@ const App = {
                 }
 
                 html += `
-                    <div class="task-item" style="padding: 1rem; ${borderStyle} ${bgStyle} display: flex; justify-content: space-between; align-items: center; cursor: pointer; margin-bottom: 0.5rem; border-radius: 4px;" onclick="App.openTaskModal({id: ${t.id}})">
+                    <div class="task-item" style="padding: 1rem; ${borderStyle} ${bgStyle} display: flex; justify-content: space-between; align-items: center; cursor: pointer; margin-bottom: 0.5rem; border-radius: 4px;" onclick="window.App.openTaskModal({id: ${t.id}})">
                         <div>
                             <strong>${t.title}</strong> ${statusIcon}<br>
                             <small>${t.status}</small>
@@ -248,12 +266,9 @@ const App = {
     },
 
     async renderProjectsOverview() {
-        // Fetch projects and calculate basic stats (e.g. open tasks)
-        // We'll reuse getTasks with a broad range or just use getProjects and maybe fetch task counts separately?
-        // Simpler: fetch all tasks for current year to approximate activity.
         const tasks = await API.getTasks(`${Calendar.currentYear}-01-01 00:00:00`, `${Calendar.currentYear}-12-31 23:59:59`);
 
-        let html = '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;"><h2>Alle Projekte</h2><button class="btn-primary" onclick="App.openProjectModal()"><i class="fa-solid fa-plus"></i> Neues Projekt</button></div>';
+        let html = '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;"><h2>Alle Projekte</h2><button class="btn-primary" onclick="window.App.openProjectModal()"><i class="fa-solid fa-plus"></i> Neues Projekt</button></div>';
         html += '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1.5rem;">';
 
         this.projects.forEach(p => {
@@ -263,7 +278,7 @@ const App = {
 
             html += `
                 <div class="glass-panel" style="padding: 1.5rem; border-left: 5px solid ${p.color}; cursor: pointer; transition: transform 0.2s;" 
-                     onclick="App.switchView('project_${p.id}')"
+                     onclick="window.App.switchView('project_${p.id}')"
                      onmouseover="this.style.transform='translateY(-2px)'" 
                      onmouseout="this.style.transform='translateY(0)'">
                     <h3 style="margin-top: 0;">${p.name}</h3>
@@ -281,12 +296,11 @@ const App = {
     },
 
     async renderAnalytics() {
-        // Simple analytics: Total hours per project for current year
         const start = `${Calendar.currentYear}-01-01 00:00:00`;
         const end = `${Calendar.currentYear}-12-31 23:59:59`;
         const tasks = await API.getTasks(start, end);
 
-        const projectStats = {}; // { projId: {name, color, seconds} }
+        const projectStats = {};
 
         tasks.forEach(t => {
             if (!projectStats[t.project_id]) {
@@ -321,6 +335,7 @@ const App = {
     populateSelects() {
         const pSelect = document.getElementById('taskProject');
         const uSelect = document.getElementById('taskAssignee');
+        if (!pSelect || !uSelect) return;
 
         pSelect.innerHTML = '<option value="">-- Projekt wählen --</option>';
         this.projects.forEach(p => {
@@ -334,13 +349,12 @@ const App = {
     },
 
     async openTaskModal(task = null, defaultDate = null) {
-        // If opening existing task, fetch fresh data to get live timer
         if (task) {
             const freshTasks = await API.getTask(task.id);
             if (freshTasks && freshTasks.length > 0) {
                 this.currentTask = freshTasks[0];
             } else {
-                this.currentTask = task; // Fallback
+                this.currentTask = task;
             }
         } else {
             this.currentTask = null;
@@ -349,6 +363,7 @@ const App = {
         const modal = document.getElementById('taskModal');
         const title = document.getElementById('modalTitle');
         const form = document.getElementById('taskForm');
+        if (!modal) return;
 
         modal.classList.remove('hidden');
         title.textContent = this.currentTask ? 'Aufgabe bearbeiten' : 'Neue Aufgabe';
@@ -356,10 +371,11 @@ const App = {
         document.getElementById('taskTimerControls').classList.toggle('hidden', this.currentTask === null);
         document.getElementById('btnDeleteTask').classList.toggle('hidden', this.currentTask === null);
 
-        // Show completion buttons only for existing tasks
         const showCompletion = this.currentTask !== null;
-        document.getElementById('btnCompleteSuccess').style.display = showCompletion ? 'inline-block' : 'none';
-        document.getElementById('btnCompleteFail').style.display = showCompletion ? 'inline-block' : 'none';
+        const btnSuccess = document.getElementById('btnCompleteSuccess');
+        const btnFail = document.getElementById('btnCompleteFail');
+        if (btnSuccess) btnSuccess.style.display = showCompletion ? 'inline-block' : 'none';
+        if (btnFail) btnFail.style.display = showCompletion ? 'inline-block' : 'none';
 
         if (this.currentTask) {
             const t = this.currentTask;
@@ -387,7 +403,8 @@ const App = {
     },
 
     closeTaskModal() {
-        document.getElementById('taskModal').classList.add('hidden');
+        const modal = document.getElementById('taskModal');
+        if (modal) modal.classList.add('hidden');
         this.currentTask = null;
         clearInterval(this.timerInterval);
     },
@@ -454,7 +471,6 @@ const App = {
 
         clearInterval(this.timerInterval);
 
-        // Check if timer is running (is_timer_running comes from DB as 1 or 0)
         if (task.is_timer_running == 1) {
             startBtn.classList.add('hidden');
             stopBtn.classList.remove('hidden');
@@ -493,9 +509,9 @@ const App = {
     },
 
     async completeTask(status) {
+        console.log('completeTask called with', status);
         if (!this.currentTask || !confirm('Status ändern?')) return;
 
-        // Stop timer if running
         if (this.currentTask.is_timer_running == 1) {
             await API.timeAction('stop', this.currentTask.id);
         }
@@ -506,11 +522,8 @@ const App = {
         if (res && res.success) {
             this.closeTaskModal();
             Calendar.render();
-            // refreshing project view if active
             const currentView = document.querySelector('.view-container[style*="block"]');
-            // Check if viewing project details or overview
             if (currentView && (currentView.id === 'projectView' || currentView.id === 'projectsOverview')) {
-                // If specific project view
                 if (currentView.id === 'projectView' && this.currentTask.project_id) {
                     this.switchView(`project_${this.currentTask.project_id}`);
                 } else if (currentView.id === 'projectsOverview') {
@@ -521,13 +534,7 @@ const App = {
             alert('Fehler beim Speichern: ' + (res ? res.error : 'Serverfehler'));
             console.error('Save failed', res);
         }
-    },
-
-    closeTaskModal() {
-        document.getElementById('taskModal').classList.add('hidden');
-        this.currentTask = null;
-        clearInterval(this.timerInterval);
     }
 };
 
-document.addEventListener('DOMContentLoaded', () => App.init());
+document.addEventListener('DOMContentLoaded', () => window.App.init());
