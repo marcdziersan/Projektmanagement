@@ -23,9 +23,7 @@ Das System ist bewusst schlicht gehalten und setzt auf klassische Webtechnik ohn
 - [Statuswerte](#statuswerte)
 - [Sicherheitshinweise](#sicherheitshinweise)
 - [Entwicklung und Prüfung](#entwicklung-und-prüfung)
-- [Bekannte Grenzen](#bekannte-grenzen)
 - [Changelog](#changelog)
-- [Lizenz / Nutzung](#lizenz--nutzung)
 
 ---
 
