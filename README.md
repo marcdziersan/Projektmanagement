@@ -1,4 +1,4 @@
-# IT Projektmanagement
+# IT Projektmanagement Original von CyberGreyRat/Projektmanagement
 
 Kompaktes webbasiertes Projektmanagement-System mit Kalenderansicht, Projekt- und Aufgabenverwaltung, Zeiterfassung, Audit-Verlauf, First-Run-Installer und vollständigen CRUD-Funktionen für Projekte und Aufgaben.
 
