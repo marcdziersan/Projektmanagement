@@ -1,42 +1,54 @@
 <?php
+require_once __DIR__ . '/Installer.php';
+
+/**
+ * Zentraler PDO-Zugriff.
+ *
+ * Reihenfolge der Konfiguration:
+ * 1. config.php aus dem First-Run-Installer
+ * 2. Umgebungsvariablen PM_DB_* als Fallback für Deployments
+ */
 class Database {
-    private static $instance = null;
-    private $pdo;
+    private static ?PDO $pdo = null;
+    private static ?array $config = null;
 
-    private $host = '127.0.0.1';
-    private $db   = 'projektmanagement';
-    private $user = 'root'; // Standard XAMPP User
-    private $pass = '';     // Standard XAMPP Password
-    private $charset = 'utf8mb4';
-
-    private function __construct() {
-        // Create DB if not exists (for initial setup)
-        try {
-            $tempPdo = new PDO("mysql:host=$this->host;charset=$this->charset", $this->user, $this->pass);
-            $tempPdo->exec("CREATE DATABASE IF NOT EXISTS `$this->db`");
-            $tempPdo = null;
-        } catch (PDOException $e) {
-            die("DB Connection failed (Initial): " . $e->getMessage());
+    private static function loadConfig(): array {
+        if (self::$config !== null) {
+            return self::$config;
         }
 
-        $dsn = "mysql:host=$this->host;dbname=$this->db;charset=$this->charset";
-        $options = [
-            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_EMULATE_PREPARES   => false,
+        $fileConfig = Installer::loadConfig();
+        $dbConfig = $fileConfig['db'] ?? [];
+
+        self::$config = [
+            'db' => [
+                'host' => self::envOrConfig('PM_DB_HOST', $dbConfig['host'] ?? '127.0.0.1'),
+                'port' => (int)self::envOrConfig('PM_DB_PORT', (string)($dbConfig['port'] ?? 3306)),
+                'name' => self::envOrConfig('PM_DB_NAME', $dbConfig['name'] ?? 'projektmanagement'),
+                'user' => self::envOrConfig('PM_DB_USER', $dbConfig['user'] ?? 'root'),
+                'pass' => self::envOrConfig('PM_DB_PASS', $dbConfig['pass'] ?? ''),
+                'charset' => self::envOrConfig('PM_DB_CHARSET', $dbConfig['charset'] ?? 'utf8mb4'),
+            ],
         ];
 
-        try {
-            $this->pdo = new PDO($dsn, $this->user, $this->pass, $options);
-        } catch (\PDOException $e) {
-            throw new \PDOException($e->getMessage(), (int)$e->getCode());
-        }
+        return self::$config;
     }
 
-    public static function getInstance() {
-        if (self::$instance == null) {
-            self::$instance = new Database();
+    private static function envOrConfig(string $key, string $default): string {
+        $value = getenv($key);
+        return $value !== false && $value !== '' ? $value : $default;
+    }
+
+    public static function getInstance(): PDO {
+        if (self::$pdo instanceof PDO) {
+            return self::$pdo;
         }
-        return self::$instance->pdo;
+
+        if (!Installer::isConfigPresent() && getenv('PM_DB_HOST') === false) {
+            throw new RuntimeException('System noch nicht installiert. Bitte install.php aufrufen.');
+        }
+
+        self::$pdo = Installer::createPdo(self::loadConfig(), true, true);
+        return self::$pdo;
     }
 }

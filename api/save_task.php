@@ -1,40 +1,35 @@
 <?php
-require_once 'api_header.php';
-require_once '../logik/TaskManager.php';
+require_once __DIR__ . '/api_header.php';
+require_once __DIR__ . '/../logik/TaskManager.php';
 
-if (!Auth::isLoggedIn()) {
-    http_response_code(401);
-    echo json_encode(['error' => 'Unauthorized']);
-    exit;
-}
-
-$data = json_decode(file_get_contents('php://input'), true);
+requireLogin();
+$data = readJsonBody();
 $tm = new TaskManager();
 
 try {
-    if (isset($data['id']) && !empty($data['id'])) {
+    if (!empty($data['id'])) {
         $tm->updateTask(
-            $data['id'],
-            $data['title'],
-            $data['description'],
-            $data['assignee_id'],
-            $data['start_date'],
-            $data['due_date'],
-            $data['status']
+            (int)$data['id'],
+            optionalInt($data['project_id'] ?? null),
+            (string)($data['title'] ?? ''),
+            $data['description'] ?? null,
+            optionalInt($data['assignee_id'] ?? null),
+            $data['start_date'] ?? null,
+            $data['due_date'] ?? null,
+            (string)($data['status'] ?? TaskManager::STATUS_NEW)
         );
-        echo json_encode(['success' => true]);
-    } else {
-        $id = $tm->createTask(
-            $data['project_id'],
-            $data['title'],
-            $data['description'],
-            $data['assignee_id'],
-            $data['start_date'],
-            $data['due_date']
-        );
-        echo json_encode(['success' => true, 'id' => $id]);
+        apiJson(['success' => true]);
     }
-} catch (Exception $e) {
-    http_response_code(500);
-    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+
+    $id = $tm->createTask(
+        optionalInt($data['project_id'] ?? null),
+        (string)($data['title'] ?? ''),
+        $data['description'] ?? null,
+        optionalInt($data['assignee_id'] ?? null),
+        $data['start_date'] ?? null,
+        $data['due_date'] ?? null
+    );
+    apiJson(['success' => true, 'id' => $id], 201);
+} catch (Throwable $e) {
+    apiError($e->getMessage(), 400);
 }

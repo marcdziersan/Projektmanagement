@@ -1,36 +1,33 @@
 <?php
-require_once 'api_header.php';
-require_once '../logik/Database.php';
+require_once __DIR__ . '/api_header.php';
+require_once __DIR__ . '/../logik/Database.php';
 
-$data = json_decode(file_get_contents('php://input'), true);
-$username = $data['username'] ?? '';
-$password = $data['password'] ?? '';
+$data = readJsonBody();
+$username = trim((string)($data['username'] ?? ''));
+$password = (string)($data['password'] ?? '');
 
-if (empty($username) || empty($password)) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'Benutzername und Passwort erforderlich']);
-    exit;
+if ($username === '' || $password === '') {
+    apiError('Benutzername und Passwort erforderlich.', 400);
+}
+if (strlen($username) < 3 || strlen($username) > 50) {
+    apiError('Benutzername muss zwischen 3 und 50 Zeichen haben.', 400);
+}
+if (strlen($password) < 6) {
+    apiError('Passwort muss mindestens 6 Zeichen haben.', 400);
 }
 
-$pdo = Database::getInstance();
+try {
+    $pdo = Database::getInstance();
+    $stmt = $pdo->prepare('SELECT id FROM users WHERE username = ? LIMIT 1');
+    $stmt->execute([$username]);
+    if ($stmt->fetch()) {
+        apiError('Benutzername bereits vergeben.', 409);
+    }
 
-// Check if user exists
-$stmt = $pdo->prepare("SELECT id FROM users WHERE username = ?");
-$stmt->execute([$username]);
-if ($stmt->fetch()) {
-    http_response_code(409); // Conflict
-    echo json_encode(['success' => false, 'error' => 'Benutzername bereits vergeben']);
-    exit;
-}
-
-// Create user
-$passHash = password_hash($password, PASSWORD_BCRYPT);
-$stmt = $pdo->prepare("INSERT INTO users (username, password_hash, role) VALUES (?, ?, 'user')");
-if ($stmt->execute([$username, $passHash])) {
-    // Auto-login? Or just success.
-    // Let's just return success and let frontend login.
-    echo json_encode(['success' => true]);
-} else {
-    http_response_code(500);
-    echo json_encode(['success' => false, 'error' => 'Datenbankfehler']);
+    $passHash = password_hash($password, PASSWORD_BCRYPT);
+    $stmt = $pdo->prepare("INSERT INTO users (username, password_hash, role) VALUES (?, ?, 'user')");
+    $stmt->execute([$username, $passHash]);
+    apiJson(['success' => true, 'id' => (int)$pdo->lastInsertId()], 201);
+} catch (Throwable $e) {
+    apiError($e->getMessage(), 500);
 }

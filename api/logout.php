@@ -1,4 +1,4 @@
 <?php
-require_once 'api_header.php';
+require_once __DIR__ . '/api_header.php';
 Auth::logout();
-echo json_encode(['success' => true]);
+apiJson(['success' => true]);

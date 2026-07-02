@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/api_header.php';
-require_once __DIR__ . '/../logik/TaskManager.php';
+require_once __DIR__ . '/../logik/ProjectManager.php';
 
 requireLogin();
 $data = readJsonBody();
@@ -11,8 +11,8 @@ if (!$id) {
 }
 
 try {
-    $tm = new TaskManager();
-    $tm->deleteTask($id);
+    $pm = new ProjectManager();
+    $pm->deleteProject($id);
     apiJson(['success' => true]);
 } catch (Throwable $e) {
     apiError($e->getMessage(), 400);

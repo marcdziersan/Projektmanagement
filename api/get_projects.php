@@ -1,12 +1,9 @@
 <?php
-require_once 'api_header.php';
-require_once '../logik/ProjectManager.php';
+require_once __DIR__ . '/api_header.php';
+require_once __DIR__ . '/../logik/ProjectManager.php';
 
-if (!Auth::isLoggedIn()) {
-    http_response_code(401);
-    echo json_encode(['error' => 'Unauthorized']);
-    exit;
-}
+requireLogin();
 
+$includeDeleted = isset($_GET['include_deleted']) && $_GET['include_deleted'] === '1';
 $pm = new ProjectManager();
-echo json_encode($pm->getAllProjects());
+apiJson($pm->getAllProjects($includeDeleted));

@@ -1,44 +1,48 @@
 <?php
-require_once 'logik/Database.php';
-require_once 'logik/TaskManager.php';
+require_once __DIR__ . '/logik/Database.php';
+require_once __DIR__ . '/logik/TaskManager.php';
+require_once __DIR__ . '/logik/Auth.php';
+
+if (session_status() === PHP_SESSION_NONE) {
+    @session_start();
+}
 
 $pdo = Database::getInstance();
-// 1. Ensure a test project and task exist
-$pdo->exec("INSERT INTO projects (id, name, color, status) VALUES (999, 'Test Overview Proj', '#ff00ff', 'active') ON DUPLICATE KEY UPDATE name=name");
-$pdo->exec("INSERT INTO tasks (title, project_id, status) VALUES ('Active Task', 999, 'in_progress')");
-$pdo->exec("INSERT INTO tasks (title, project_id, status, completed_at) VALUES ('Done Task', 999, 'completed_success', NOW())");
+$stmt = $pdo->query("SELECT id, username, role FROM users WHERE username = 'admin' LIMIT 1");
+$admin = $stmt->fetch();
+if ($admin) {
+    $_SESSION['user_id'] = (int)$admin['id'];
+    $_SESSION['username'] = $admin['username'];
+    $_SESSION['role'] = $admin['role'];
+}
 
-// 2. Fetch tasks for overview logic (broad range)
+$pdo->exec("INSERT INTO projects (id, name, color, status) VALUES (999, 'Test Overview Proj', '#ff00ff', 'active') ON DUPLICATE KEY UPDATE name = VALUES(name), status = VALUES(status)");
+$pdo->exec("INSERT INTO tasks (title, project_id, status, start_date, due_date) VALUES ('Active Task', 999, 'in_progress', NOW(), NOW())");
+$pdo->exec("INSERT INTO tasks (title, project_id, status, completed_at, start_date, due_date) VALUES ('Done Task', 999, 'completed_success', NOW(), NOW(), NOW())");
+
 $tm = new TaskManager();
-// Assuming app.js uses full year range
 $start = date('Y') . '-01-01 00:00:00';
 $end = date('Y') . '-12-31 23:59:59';
 $tasks = $tm->getTasks($start, $end);
+$pTasks = array_filter($tasks, fn($t) => (int)$t['project_id'] === 999);
 
-$pTasks = array_filter($tasks, function($t) { return $t['project_id'] == 999; });
 $openCount = 0;
 $doneCount = 0;
-foreach($pTasks as $t) {
-    if ($t['status'] == 'completed_success' || $t['status'] == 'completed_fail') $doneCount++;
-    else $openCount++;
+foreach ($pTasks as $t) {
+    if (in_array($t['status'], ['completed_success', 'completed_fail', 'completed'], true)) {
+        $doneCount++;
+    } else {
+        $openCount++;
+    }
 }
+echo "Project 999 Stats: Open={$openCount}, Done={$doneCount}\n";
 
-echo "Project 999 Stats: Open=$openCount, Done=$doneCount\n";
-
-// 3. Test Completion Logic (Update Task)
-// Create a temp task
-$pdo->exec("INSERT INTO tasks (title, status) VALUES ('Completion Test', 'new')");
-$id = $pdo->lastInsertId();
-$tm->updateTask($id, 'Completion Test Updated', '', null, null, null, 'completed_success');
-
-// Verify completed_at is set
-$stmt = $pdo->prepare("SELECT status, completed_at FROM tasks WHERE id = ?");
+$id = $tm->createTask(999, 'Completion Test', '', null, null, null);
+$tm->updateTask($id, 999, 'Completion Test Updated', '', null, null, null, 'completed_success');
+$stmt = $pdo->prepare('SELECT status, completed_at FROM tasks WHERE id = ?');
 $stmt->execute([$id]);
 $res = $stmt->fetch(PDO::FETCH_ASSOC);
+echo 'Task ' . $id . ': Status=' . $res['status'] . ', CompletedAt=' . ($res['completed_at'] ? 'SET' : 'NULL') . "\n";
 
-echo "Task $id: Status=" . $res['status'] . ", CompletedAt=" . ($res['completed_at'] ? 'SET' : 'NULL') . "\n";
-
-// Cleanup
-$pdo->exec("DELETE FROM tasks WHERE project_id = 999");
-$pdo->exec("DELETE FROM projects WHERE id = 999");
-$pdo->exec("DELETE FROM tasks WHERE id = $id");
+$pdo->exec('DELETE FROM tasks WHERE project_id = 999');
+$pdo->exec('DELETE FROM projects WHERE id = 999');

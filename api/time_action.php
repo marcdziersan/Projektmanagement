@@ -1,35 +1,26 @@
 <?php
-require_once 'api_header.php';
-require_once '../logik/TimeTracker.php';
+require_once __DIR__ . '/api_header.php';
+require_once __DIR__ . '/../logik/TimeTracker.php';
 
-if (!Auth::isLoggedIn()) {
-    http_response_code(401);
-    echo json_encode(['error' => 'Unauthorized']);
-    exit;
-}
-
-$data = json_decode(file_get_contents('php://input'), true);
-$action = $data['action'] ?? '';
-$taskId = $data['task_id'] ?? null;
+requireLogin();
+$data = readJsonBody();
+$action = (string)($data['action'] ?? '');
+$taskId = optionalInt($data['task_id'] ?? null);
 
 if (!$taskId) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'Missing Task ID']);
-    exit;
+    apiError('Missing Task ID', 400);
 }
 
-$tt = new TimeTracker();
-
-if ($action === 'start') {
-    $logId = $tt->startTimer($taskId);
-    echo json_encode(['success' => true, 'log_id' => $logId]);
-} elseif ($action === 'stop') {
-    if ($tt->stopTimer($taskId)) {
-        echo json_encode(['success' => true]);
-    } else {
-        echo json_encode(['success' => false, 'error' => 'No running timer found']);
+try {
+    $tt = new TimeTracker();
+    if ($action === 'start') {
+        apiJson(['success' => true, 'log_id' => $tt->startTimer($taskId)], 201);
     }
-} else {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'Invalid Action']);
+    if ($action === 'stop') {
+        $stopped = $tt->stopTimer($taskId);
+        apiJson(['success' => $stopped, 'error' => $stopped ? null : 'No running timer found']);
+    }
+    apiError('Invalid Action', 400);
+} catch (Throwable $e) {
+    apiError($e->getMessage(), 400);
 }

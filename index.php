@@ -1,14 +1,23 @@
 <?php
-require_once 'logik/Auth.php';
-$isLoggedIn = Auth::isLoggedIn();
-$user = $isLoggedIn ? ['username' => $_SESSION['username'], 'role' => $_SESSION['role']] : null;
+require_once __DIR__ . '/logik/Installer.php';
+
+if (!Installer::isFullyInstalled()) {
+    header('Location: install.php');
+    exit;
+}
+
+require_once __DIR__ . '/logik/Auth.php';
+$config = Installer::loadConfig();
+$appName = $config['app']['name'] ?? 'IT Projektmanagement';
+$user = Auth::getCurrentUser();
+$isLoggedIn = $user !== null;
 ?>
 <!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IT Projektmanagement</title>
+    <title><?= htmlspecialchars($appName, ENT_QUOTES, 'UTF-8') ?></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -19,7 +28,7 @@ $user = $isLoggedIn ? ['username' => $_SESSION['username'], 'role' => $_SESSION[
 
 <?php if (!$isLoggedIn): ?>
     <div class="login-container glass-panel">
-        <h1><i class="fa-solid fa-layer-group"></i> IT Management</h1>
+        <h1><i class="fa-solid fa-layer-group"></i> <?= htmlspecialchars($appName, ENT_QUOTES, 'UTF-8') ?></h1>
         
         <!-- Login Form -->
         <form id="loginForm">
@@ -62,13 +71,13 @@ $user = $isLoggedIn ? ['username' => $_SESSION['username'], 'role' => $_SESSION[
     <div class="app-layout">
         <aside class="sidebar glass-panel">
             <div class="brand">
-                <i class="fa-solid fa-layer-group"></i> IT Manager
+                <i class="fa-solid fa-layer-group"></i> <?= htmlspecialchars($appName, ENT_QUOTES, 'UTF-8') ?>
             </div>
             <div class="user-profile">
-                <div class="avatar"><?= strtoupper(substr($user['username'], 0, 1)) ?></div>
+                <div class="avatar"><?= htmlspecialchars(strtoupper(substr((string)($user['username'] ?? 'N'), 0, 1)) ?: 'N', ENT_QUOTES, 'UTF-8') ?></div>
                 <div class="user-info">
-                    <span class="name"><?= htmlspecialchars($user['username']) ?></span>
-                    <span class="role"><?= htmlspecialchars($user['role']) ?></span>
+                    <span class="name"><?= htmlspecialchars((string)($user['username'] ?? 'Nutzer'), ENT_QUOTES, 'UTF-8') ?></span>
+                    <span class="role"><?= htmlspecialchars((string)($user['role'] ?? 'user'), ENT_QUOTES, 'UTF-8') ?></span>
                 </div>
             </div>
             
@@ -119,7 +128,7 @@ $user = $isLoggedIn ? ['username' => $_SESSION['username'], 'role' => $_SESSION[
 
     <!-- Modals -->
     <div id="taskModal" class="modal hidden">
-        <div class="modal-content glass-panel">
+        <div class="modal-content modal-compact glass-panel">
             <span class="close-modal">&times;</span>
             <h2 id="modalTitle">Aufgabe erstellen</h2>
             <form id="taskForm">
@@ -132,23 +141,43 @@ $user = $isLoggedIn ? ['username' => $_SESSION['username'], 'role' => $_SESSION[
                     <label>Projekt</label>
                     <select id="taskProject" required></select>
                 </div>
-                <div class="row">
+                <div class="date-time-grid">
                     <div class="form-group">
-                        <label>Start</label>
-                        <input type="datetime-local" id="taskStart" required>
+                        <label>Startdatum</label>
+                        <input type="date" id="taskStartDate" required>
+                    </div>
+                    <div class="form-group time-field">
+                        <label>Startzeit</label>
+                        <input type="time" id="taskStartTime" value="09:00" step="300" required>
                     </div>
                     <div class="form-group">
-                        <label>Fällig</label>
-                        <input type="datetime-local" id="taskDue" required>
+                        <label>Fällig am</label>
+                        <input type="date" id="taskDueDate" required>
+                    </div>
+                    <div class="form-group time-field">
+                        <label>Fällig um</label>
+                        <input type="time" id="taskDueTime" value="10:00" step="300" required>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label>Zugewiesen an</label>
-                    <select id="taskAssignee"></select>
+                <div class="field-hint">Saubere, kompakte Datum- und Zeitfelder statt der großen kombinierten Browser-Auswahl.</div>
+                <div class="row compact-row">
+                    <div class="form-group">
+                        <label>Zugewiesen an</label>
+                        <select id="taskAssignee"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select id="taskStatus">
+                            <option value="new">Neu</option>
+                            <option value="in_progress">In Bearbeitung</option>
+                            <option value="completed_success">Erfolgreich abgeschlossen</option>
+                            <option value="completed_fail">Gescheitert</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>Beschreibung</label>
-                    <textarea id="taskDesc" rows="3"></textarea>
+                    <textarea id="taskDesc" rows="2"></textarea>
                 </div>
                 <div class="modal-actions">
                     <button type="button" class="btn-danger hidden" id="btnDeleteTask">Löschen</button>
@@ -174,21 +203,36 @@ $user = $isLoggedIn ? ['username' => $_SESSION['username'], 'role' => $_SESSION[
 
     <!-- Project Modal -->
     <div id="projectModal" class="modal hidden">
-        <div class="modal-content glass-panel">
+        <div class="modal-content modal-compact glass-panel">
             <span class="close-modal">&times;</span>
-            <h2>Neues Projekt</h2>
+            <h2 id="projectModalTitle">Projekt anlegen</h2>
             <form id="projectForm">
+                <input type="hidden" id="projId">
                 <div class="form-group">
                     <label>Projektname</label>
-                    <input type="text" id="projName" required>
+                    <input type="text" id="projName" required maxlength="100">
                 </div>
                 <div class="form-group">
-                    <label>Farbe</label>
-                    <input type="color" id="projColor" value="#3498db" style="width: 100%; height: 40px; border: none; background: none;">
+                    <label>Beschreibung</label>
+                    <textarea id="projDesc" rows="2" placeholder="Optional"></textarea>
+                </div>
+                <div class="row compact-row">
+                    <div class="form-group">
+                        <label>Farbe</label>
+                        <input type="color" id="projColor" value="#3498db" class="color-input">
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select id="projStatus">
+                            <option value="active">Aktiv</option>
+                            <option value="completed">Abgeschlossen</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="modal-actions">
+                    <button type="button" class="btn-danger hidden" id="btnDeleteProject">Löschen</button>
                     <button type="button" class="btn-secondary close-modal-btn">Abbrechen</button>
-                    <button type="submit" class="btn-primary">Erstellen</button>
+                    <button type="submit" class="btn-primary" id="btnSaveProject">Speichern</button>
                 </div>
             </form>
         </div>

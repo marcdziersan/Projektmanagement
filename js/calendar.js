@@ -37,26 +37,17 @@ const Calendar = {
         if (!grid || !label) return;
 
         grid.innerHTML = '';
-
         const date = new Date(this.currentYear, this.currentMonth, 1);
         const monthName = date.toLocaleString('de-DE', { month: 'long' });
         label.textContent = `${monthName} ${this.currentYear}`;
 
-        // Calculate start/end for API
-        // Get first day of month
-        const firstDayIdx = (date.getDay() + 6) % 7; // Mon=0, Sun=6
+        const firstDayIdx = (date.getDay() + 6) % 7;
         const daysInMonth = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
-
-        // Fetch tasks
         const startDateStr = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-01`;
         const endDateStr = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${daysInMonth}`;
+        const tasksResponse = await API.getTasks(`${startDateStr} 00:00:00`, `${endDateStr} 23:59:59`);
+        const tasks = Array.isArray(tasksResponse) ? tasksResponse : [];
 
-        // Actually, to be safe, fetch a bit more for overlap? 
-        // Let's just fetch the whole month range.
-
-        const tasks = await API.getTasks(`${startDateStr} 00:00:00`, `${endDateStr} 23:59:59`);
-
-        // Create blank cells for prev month offset
         for (let i = 0; i < firstDayIdx; i++) {
             const cell = document.createElement('div');
             cell.className = 'calendar-day other-month';
@@ -65,7 +56,6 @@ const Calendar = {
 
         const today = new Date();
 
-        // Create days
         for (let d = 1; d <= daysInMonth; d++) {
             const cell = document.createElement('div');
             cell.className = 'calendar-day';
@@ -79,40 +69,36 @@ const Calendar = {
             }
 
             cell.appendChild(dayNum);
-
-            // Interaction: Click empty space to add task
             cell.addEventListener('click', (e) => {
                 if (e.target === cell || e.target === dayNum) {
                     App.openTaskModal(null, new Date(this.currentYear, this.currentMonth, d, 9, 0));
                 }
             });
 
-            // Find tasks for this day
-            // Simple check: start date is this day OR it spans this day.
-            // Requirement: "alle aufgaben anzeigt... status dazu"
-            // Let's simplified check: Start Date is on this day.
-            // Or if spanning, show on all days? For simplicity in monthly view, showing on Start Date is common.
-            // But user said "projekte... start drücken...".
-            // Let's show on Start Date.
-
             const currentDayStr = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-
-            const dayTasks = tasks.filter(t => t.start_date.startsWith(currentDayStr));
+            const dayTasks = tasks.filter(t => String(t.start_date || '').startsWith(currentDayStr));
 
             dayTasks.forEach(task => {
                 const card = document.createElement('div');
-                card.className = `task-card status-${task.status}`;
+                card.className = `task-card status-${task.status || 'new'}`;
 
-                // Active timer indicator
-                let timerIcon = '';
-                if (task.is_timer_running == 1) {
-                    timerIcon = ' <i class="fa-solid fa-clock fa-spin" style="color: #ef4444;"></i>';
-                    card.classList.add('timer-running'); // for optional CSS styling
+                if (Number(task.is_timer_running) > 0) {
+                    card.classList.add('timer-running');
                 }
 
-                card.innerHTML = `${task.title}${timerIcon}`;
-                card.title = `${task.title}\nStatus: ${task.status}\nAssignee: ${task.assignee_name}`;
+                const title = document.createElement('span');
+                title.textContent = task.title || 'Ohne Titel';
+                card.appendChild(title);
 
+                if (Number(task.is_timer_running) > 0) {
+                    const icon = document.createElement('i');
+                    icon.className = 'fa-solid fa-clock fa-spin';
+                    icon.style.color = '#ef4444';
+                    icon.style.marginLeft = '0.35rem';
+                    card.appendChild(icon);
+                }
+
+                card.title = `${task.title || 'Ohne Titel'}\nStatus: ${App.formatStatus(task.status)}\nZugewiesen: ${task.assignee_name || 'Nicht zugewiesen'}`;
                 card.addEventListener('click', (e) => {
                     e.stopPropagation();
                     App.openTaskModal(task);

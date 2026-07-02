@@ -1,20 +1,29 @@
 <?php
-require_once 'api_header.php';
-require_once '../logik/ProjectManager.php';
+require_once __DIR__ . '/api_header.php';
+require_once __DIR__ . '/../logik/ProjectManager.php';
 
-if (!Auth::isLoggedIn()) {
-    http_response_code(401);
-    echo json_encode(['error' => 'Unauthorized']);
-    exit;
-}
-
-$data = json_decode(file_get_contents('php://input'), true);
+requireLogin();
+$data = readJsonBody();
 $pm = new ProjectManager();
 
-if (isset($data['id']) && !empty($data['id'])) {
-    $pm->updateProject($data['id'], $data['name'], $data['description'], $data['color'], $data['status']);
-    echo json_encode(['success' => true]);
-} else {
-    $id = $pm->createProject($data['name'], $data['description'], $data['color']);
-    echo json_encode(['success' => true, 'id' => $id]);
+try {
+    if (!empty($data['id'])) {
+        $pm->updateProject(
+            (int)$data['id'],
+            (string)($data['name'] ?? ''),
+            $data['description'] ?? null,
+            $data['color'] ?? null,
+            (string)($data['status'] ?? 'active')
+        );
+        apiJson(['success' => true]);
+    }
+
+    $id = $pm->createProject(
+        (string)($data['name'] ?? ''),
+        $data['description'] ?? null,
+        $data['color'] ?? null
+    );
+    apiJson(['success' => true, 'id' => $id], 201);
+} catch (Throwable $e) {
+    apiError($e->getMessage(), 400);
 }
