@@ -555,27 +555,6 @@ Diese Dateien dienen der einfachen technischen Prüfung einzelner Backendbereich
 
 ---
 
-## Bekannte Grenzen
-
-Das Projekt ist ein kompaktes Projektmanagement-MVP und keine vollständige ERP-Suite.
-
-Aktuell nicht enthalten:
-
-- Kundenverwaltung
-- Rechnungssystem
-- EÜR
-- Monatszettel pro Mitarbeiter
-- Datei-Uploads pro Aufgabe
-- Rechteverwaltung auf Projektebene
-- Kanban-Board
-- Benachrichtigungssystem
-- Mehrmandantenfähigkeit
-- vollständige Testabdeckung
-
-Diese Bereiche können später modular ergänzt werden.
-
----
-
 ## Changelog
 
 ### Refactoring
@@ -621,28 +600,3 @@ Diese Bereiche können später modular ergänzt werden.
 - große `datetime-local`-Auswahl durch kompakte getrennte Datums- und Uhrzeitfelder ersetzt
 
 ---
-
-## Lizenz / Nutzung
-
-Dieses Projekt kann als eigenes Lern-, Portfolio- oder internes Verwaltungsprojekt genutzt und weiterentwickelt werden.
-
-Vor einer Veröffentlichung sollte geprüft werden:
-
-- ob eine konkrete Lizenz ergänzt werden soll
-- ob sensible Daten entfernt wurden
-- ob `config.php` nicht versehentlich enthalten ist
-- ob Testdaten entfernt oder anonymisiert wurden
-
-Empfohlene Lizenzdatei bei freier Veröffentlichung:
-
-```text
-MIT License
-```
-
----
-
-## Kurzbeschreibung für GitHub
-
-```text
-Kompaktes PHP/MySQL-Projektmanagement-System mit First-Run-Installer, Projekt-CRUD, Aufgaben-CRUD, Kalender, Timer, Audit-Log und schlanker Vanilla-JS-Oberfläche.
-```
