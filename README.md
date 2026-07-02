@@ -4,6 +4,8 @@ Kompaktes webbasiertes Projektmanagement-System mit Kalenderansicht, Projekt- un
 
 Das System ist bewusst schlicht gehalten und setzt auf klassische Webtechnik ohne Framework-Overkill: PHP, MySQL/MariaDB, HTML, CSS und JavaScript.
 
+## Refactoring - und Anpassungen vorgenommen.
+
 ---
 
 ## Inhaltsverzeichnis
