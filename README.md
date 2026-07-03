@@ -1,8 +1,6 @@
-# IT Projektmanagement Original von CyberGreyRat/Projektmanagement
+# IT Projektmanagement – Refactoring & Erweiterung
 
-Kompaktes webbasiertes Projektmanagement-System mit Kalenderansicht, Projekt- und Aufgabenverwaltung, Zeiterfassung, Audit-Verlauf, First-Run-Installer und vollständigen CRUD-Funktionen für Projekte und Aufgaben.
-
-Das System ist bewusst schlicht gehalten und setzt auf klassische Webtechnik ohne Framework-Overkill: PHP, MySQL/MariaDB, HTML, CSS und JavaScript.
+Dieses Repository basiert auf CyberGreyRat/Projektmanagement und dokumentiert mein Refactoring, meine UI-Anpassungen, CRUD-Erweiterungen und Installer-Integration.
 
 ## Refactoring - und Anpassungen vorgenommen.
 
